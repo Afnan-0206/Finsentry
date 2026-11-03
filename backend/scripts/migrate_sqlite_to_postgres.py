@@ -1,54 +1,46 @@
-"""
-FinSentry AI - SQLite to PostgreSQL Database Migration Script.
+"""Copy local FinSentry SQLite data into a PostgreSQL database without deleting the source."""
 
-This script exports all existing data (including all 337 demonstration transactions,
-subscriptions, alerts, recommendations, and anomaly logs) from the local SQLite database
-and safely inserts them into a target PostgreSQL database without data loss.
-
-Usage:
-    python backend/scripts/migrate_sqlite_to_postgres.py --target-url "postgresql://user:password@host:5432/finsentry"
-"""
-
-import sys
-import os
 import argparse
+import os
+import sys
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Add backend directory to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, BACKEND_DIR)
 
-from app.core.database import Base
-from app.models.models import (
-    Transaction,
-    Subscription,
-    Alert,
-    Recommendation,
-    Budget,
-    ChatMessage,
-    ImportBatch,
-    AnomalyLog,
+from app.core.database import Base  # noqa: E402
+from app.models.models import (  # noqa: E402
+    Alert, AnomalyLog, Budget, ChatMessage, ImportBatch,
+    Recommendation, Subscription, Transaction,
 )
 
-def migrate_database(sqlite_path: str, postgres_url: str):
-    print(f"[1/4] Connecting to source SQLite database: {sqlite_path}")
-    if not os.path.exists(sqlite_path):
-        print(f"Error: Source SQLite database not found at {sqlite_path}")
-        sys.exit(1)
 
-    sqlite_engine = create_engine(f"sqlite:///{sqlite_path}")
-    SqliteSession = sessionmaker(bind=sqlite_engine)
-    src_db = SqliteSession()
+def migrate_database(sqlite_path: str, postgres_url: str) -> None:
+    if not os.path.isfile(sqlite_path):
+        raise FileNotFoundError(f"Source SQLite database not found: {sqlite_path}")
 
-    print(f"[2/4] Connecting to target PostgreSQL database: {postgres_url}")
-    pg_engine = create_engine(postgres_url)
-    PgSession = sessionmaker(bind=pg_engine)
-    dst_db = PgSession()
+    target_url = postgres_url.strip()
+    if target_url.startswith("postgres://"):
+        target_url = "postgresql://" + target_url[len("postgres://"):]
 
-    print("[3/4] Creating database tables in PostgreSQL if not present...")
-    Base.metadata.create_all(bind=pg_engine)
+    sqlite_engine = create_engine(
+        f"sqlite:///{os.path.abspath(sqlite_path)}",
+        connect_args={"check_same_thread": False},
+    )
+    pg_engine = create_engine(
+        target_url,
+        pool_pre_ping=True,
+        pool_size=2,
+        max_overflow=1,
+    )
+    SourceSession = sessionmaker(bind=sqlite_engine)
+    TargetSession = sessionmaker(bind=pg_engine)
+    source = SourceSession()
+    target = TargetSession()
 
-    models_to_migrate = [
+    models = [
         ("ImportBatch", ImportBatch),
         ("Transaction", Transaction),
         ("Subscription", Subscription),
@@ -59,38 +51,40 @@ def migrate_database(sqlite_path: str, postgres_url: str):
         ("AnomalyLog", AnomalyLog),
     ]
 
-    print("[4/4] Migrating table records...")
-    total_migrated = 0
-    for model_name, model_cls in models_to_migrate:
-        records = src_db.query(model_cls).all()
-        count = len(records)
-        print(f" -> Migrating {model_name}: {count} records...")
+    try:
+        Base.metadata.create_all(bind=pg_engine)
+        total = 0
+        for name, model in models:
+            rows = source.query(model).order_by(model.id).all()
+            for row in rows:
+                values = {column.name: getattr(row, column.name) for column in row.__table__.columns}
+                target.merge(model(**values))
+            target.commit()
+            total += len(rows)
+            print(f"{name}: copied {len(rows)} rows")
 
-        for rec in records:
-            # Create a detached dictionary copy
-            data = {c.name: getattr(rec, c.name) for c in rec.__table__.columns}
-            new_rec = model_cls(**data)
-            dst_db.merge(new_rec)
-        
-        dst_db.commit()
-        total_migrated += count
+        print(f"Copied {total} rows across {len(models)} tables. Verifying counts...")
+        for name, model in models:
+            source_count = source.query(model).count()
+            target_count = target.query(model).count()
+            if source_count != target_count:
+                raise RuntimeError(f"{name} count mismatch: source={source_count}, target={target_count}")
+            print(f"{name}: verified {target_count} rows")
+        print("Migration complete. The source SQLite database was not modified.")
+    finally:
+        source.close()
+        target.close()
+        sqlite_engine.dispose()
+        pg_engine.dispose()
 
-    print(f"\n[SUCCESS] Successfully migrated {total_migrated} records to PostgreSQL!")
-    src_db.close()
-    dst_db.close()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Migrate FinSentry SQLite database to PostgreSQL")
+    parser = argparse.ArgumentParser(description="Migrate FinSentry SQLite data to PostgreSQL")
     parser.add_argument(
         "--source",
-        default="data/finsentry.db",
-        help="Path to source SQLite database file (default: data/finsentry.db)"
+        default=os.path.join(BACKEND_DIR, "data", "finsentry.db"),
+        help="Source SQLite database path",
     )
-    parser.add_argument(
-        "--target-url",
-        required=True,
-        help="Target PostgreSQL connection string (e.g. postgresql://user:pass@host/db)"
-    )
+    parser.add_argument("--target-url", required=True, help="Target PostgreSQL connection URL")
     args = parser.parse_args()
-
     migrate_database(args.source, args.target_url)
