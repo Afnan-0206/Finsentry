@@ -8,7 +8,6 @@ from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 import app.models.models  # Ensure all models are registered
 from app.models.models import Transaction
-from app.services.demo_data_service import DemoDataService
 
 # Import routers
 from app.api.routes import (
@@ -28,19 +27,16 @@ from app.api.routes import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables
+    # Startup: Ensure SQLite tables exist without altering or resetting existing rows
     Base.metadata.create_all(bind=engine)
     
-    # Auto-seed if database is completely empty
+    # Audit existing records on startup (never automatically delete or reseed data)
     db = SessionLocal()
     try:
         count = db.query(Transaction).count()
-        if count == 0:
-            print("[FinSentry AI] Initializing database with demonstration dataset...")
-            DemoDataService.reset_and_seed_demo_data(db)
-            print("[FinSentry AI] Demonstration data populated successfully.")
+        print(f"[FinSentry AI] Storage active: Permanent Local SQLite ({count} transactions loaded).")
     except Exception as e:
-        print(f"[FinSentry AI] Error during startup seeding: {e}")
+        print(f"[FinSentry AI] Startup storage notice: {e}")
     finally:
         db.close()
 
@@ -58,10 +54,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Middleware
+# CORS Middleware configured for local development and free Cloudflare Tunnels
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.)*(trycloudflare\.com|pages\.dev|localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

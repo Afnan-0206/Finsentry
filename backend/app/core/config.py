@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
         "http://localhost:3000",
         "https://finsentry.pages.dev",
         "https://finsentry-ai-afnan.pages.dev"
@@ -18,7 +20,7 @@ class Settings(BaseSettings):
     
     # Financial Settings
     DEFAULT_CURRENCY: str = "INR"
-    CURRENCY_SYMBOL: str = "â‚¹"
+    CURRENCY_SYMBOL: str = "₹"
     
     # ML Anomaly Detection Settings
     ISOLATION_FOREST_CONTAMINATION: float = 0.05

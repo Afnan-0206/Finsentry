@@ -45,27 +45,6 @@ def list_transactions(
 def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
     return TransactionService.create(db, data)
 
-@router.get("/{txn_id}", response_model=TransactionResponse)
-def get_transaction(txn_id: int, db: Session = Depends(get_db)):
-    txn = TransactionService.get_by_id(db, txn_id)
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return txn
-
-@router.put("/{txn_id}", response_model=TransactionResponse)
-def update_transaction(txn_id: int, data: TransactionUpdate, db: Session = Depends(get_db)):
-    txn = TransactionService.update(db, txn_id, data)
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return txn
-
-@router.delete("/{txn_id}", status_code=204)
-def delete_transaction(txn_id: int, db: Session = Depends(get_db)):
-    deleted = TransactionService.delete(db, txn_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return Response(status_code=204)
-
 @router.post("/import", response_model=CSVImportResponse)
 async def import_transactions_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.endswith(".csv"):
@@ -103,3 +82,24 @@ def export_transactions_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=transactions_export.csv"}
     )
+
+@router.get("/{txn_id}", response_model=TransactionResponse)
+def get_transaction(txn_id: int, db: Session = Depends(get_db)):
+    txn = TransactionService.get_by_id(db, txn_id)
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return txn
+
+@router.put("/{txn_id}", response_model=TransactionResponse)
+def update_transaction(txn_id: int, data: TransactionUpdate, db: Session = Depends(get_db)):
+    txn = TransactionService.update(db, txn_id, data)
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return txn
+
+@router.delete("/{txn_id}", status_code=204)
+def delete_transaction(txn_id: int, db: Session = Depends(get_db)):
+    deleted = TransactionService.delete(db, txn_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return Response(status_code=204)
