@@ -24,7 +24,7 @@ export const DuplicatesPage: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.getDuplicates();
-      setDuplicates(res.candidates);
+      setDuplicates(Array.isArray(res?.candidates) ? res.candidates : []);
       setAnalysisMeta(res);
     } catch (err) {
       console.error('Failed to load duplicate candidates', err);
@@ -41,7 +41,7 @@ export const DuplicatesPage: React.FC = () => {
     try {
       setAnalyzing(true);
       const res = await api.analyzeDuplicates();
-      setDuplicates(res.candidates);
+      setDuplicates(Array.isArray(res?.candidates) ? res.candidates : []);
       setAnalysisMeta(res);
     } catch (err) {
       console.error('Failed to run duplicate analysis', err);

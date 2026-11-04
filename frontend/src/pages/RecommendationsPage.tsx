@@ -25,7 +25,7 @@ export const RecommendationsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.getRecommendations();
-      setRecommendations(data);
+      setRecommendations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load recommendations', err);
     } finally {

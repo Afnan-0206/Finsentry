@@ -28,6 +28,17 @@ const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.response.use(
+  (response) => {
+    // Detect HTML responses sent by static edge hosts when the backend endpoint isn't connected
+    if (typeof response.data === 'string' && response.data.trim().toLowerCase().startsWith('<!doctype html>')) {
+      return Promise.reject(new Error('Backend endpoint returned HTML. Verify backend server and API URL.'));
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const api = {
   // Dashboard
   getDashboardSummary: async (): Promise<DashboardSummary> => {

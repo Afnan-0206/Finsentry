@@ -86,19 +86,23 @@ export const OverviewPage: React.FC = () => {
         api.getSubscriptions(),
       ]);
 
-      if (sumRes.status === 'fulfilled') {
+      if (sumRes.status === 'fulfilled' && sumRes.value && typeof sumRes.value === 'object' && typeof (sumRes.value as any).total_income === 'number') {
         setSummary(sumRes.value);
+      } else {
+        const failureReason = sumRes.status === 'rejected' ? (sumRes.reason?.message || 'Connection refused') : 'Invalid server response';
+        setError(`Unable to connect to FinSentry AI backend (${failureReason}). Ensure your local FastAPI server is running on port 8001 and your Cloudflare Tunnel is connected.`);
       }
-      if (trendRes.status === 'fulfilled') {
+
+      if (trendRes.status === 'fulfilled' && trendRes.value && typeof trendRes.value === 'object') {
         setTrends(trendRes.value);
       }
-      if (anomRes.status === 'fulfilled' && anomRes.value?.length > 0) {
+      if (anomRes.status === 'fulfilled' && Array.isArray(anomRes.value) && anomRes.value.length > 0) {
         setTopAnomaly(anomRes.value[0]);
       }
-      if (dupRes.status === 'fulfilled' && dupRes.value?.candidates?.length > 0) {
+      if (dupRes.status === 'fulfilled' && dupRes.value && Array.isArray(dupRes.value?.candidates) && dupRes.value.candidates.length > 0) {
         setTopDuplicate(dupRes.value.candidates[0]);
       }
-      if (subRes.status === 'fulfilled') {
+      if (subRes.status === 'fulfilled' && Array.isArray(subRes.value)) {
         const hike = subRes.value.find((s) => s.status === 'price_increase');
         if (hike) setTopPriceHike(hike);
       }
@@ -133,14 +137,16 @@ export const OverviewPage: React.FC = () => {
     );
   }
 
-  if (error && !summary) {
+  if (!summary) {
     return (
       <div className="p-8 text-center bg-[#101012] rounded-bento border border-rose-500/30 max-w-lg mx-auto my-12 shadow-2xl">
         <AlertOctagon className="w-10 h-10 text-rose-500 mx-auto mb-3" />
-        <h3 className="text-base font-extrabold text-white">Connection Error</h3>
-        <p className="text-xs text-white/60 mt-1 leading-relaxed">{error}</p>
+        <h3 className="text-base font-extrabold text-white">Backend Offline or Disconnected</h3>
+        <p className="text-xs text-white/60 mt-1 leading-relaxed">
+          {error || 'Unable to connect to FinSentry AI backend. Make sure your FastAPI server is running on port 8001 and your Cloudflare Tunnel is connected.'}
+        </p>
         <button
-          onClick={() => fetchData()}
+          onClick={() => fetchData(true)}
           className="mt-5 px-4 py-2 rounded-xl bg-[#E8FF1F] text-black font-bold text-xs hover:bg-[#d4eb17] transition-all"
         >
           Retry Connection

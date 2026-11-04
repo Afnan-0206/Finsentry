@@ -51,7 +51,7 @@ export const InvestigatorPage: React.FC = () => {
         api.getChatHistory(),
         api.getChatProviderStatus(selectedModel),
       ]);
-      if (history.status === 'fulfilled') {
+      if (history.status === 'fulfilled' && Array.isArray(history.value)) {
         setMessages(history.value);
       }
       if (status.status === 'fulfilled') {

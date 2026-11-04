@@ -66,7 +66,7 @@ export const TransactionsPage: React.FC = () => {
       if (selectedType !== 'All') params.transaction_type = selectedType;
 
       const data = await api.getTransactions(params);
-      setTransactions(data);
+      setTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch transactions', err);
     } finally {

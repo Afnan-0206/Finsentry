@@ -31,7 +31,7 @@ export const SubscriptionsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.getSubscriptions();
-      setSubscriptions(data);
+      setSubscriptions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch subscriptions', err);
     } finally {
@@ -47,7 +47,9 @@ export const SubscriptionsPage: React.FC = () => {
     try {
       setScanning(true);
       const res = await api.detectSubscriptions();
-      setSubscriptions(res.subscriptions);
+      if (Array.isArray(res?.subscriptions)) {
+        setSubscriptions(res.subscriptions);
+      }
     } catch (err) {
       console.error('Failed to detect subscriptions', err);
     } finally {

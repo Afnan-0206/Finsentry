@@ -16,9 +16,11 @@ export const Layout: React.FC = () => {
   const fetchAlerts = async () => {
     try {
       const data = await api.getAlerts({ limit: 100 });
-      setAlerts(data);
-      const unread = data.filter((a) => !a.is_read && !a.is_dismissed).length;
-      setUnreadCount(unread);
+      if (Array.isArray(data)) {
+        setAlerts(data);
+        const unread = data.filter((a) => !a.is_read && !a.is_dismissed).length;
+        setUnreadCount(unread);
+      }
     } catch (err) {
       console.error('Failed to load alerts', err);
     }

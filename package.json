@@ -9,3 +9,4 @@
     "build": "npm run build --workspace=frontend && node -e \"const fs=require('fs'); if(fs.existsSync('frontend/dist')){ fs.cpSync('frontend/dist', 'dist', {recursive: true}); console.log('Copied frontend/dist -> dist'); }\""
   }
 }
+

@@ -29,7 +29,7 @@ export const AnomaliesPage: React.FC = () => {
     try {
       setLoading(true);
       const anomData = await api.getAnomalies();
-      setAnomalies(anomData);
+      setAnomalies(Array.isArray(anomData) ? anomData : []);
     } catch (err) {
       console.error('Failed to load anomaly data', err);
     } finally {
@@ -46,7 +46,9 @@ export const AnomaliesPage: React.FC = () => {
       setAnalyzing(true);
       const res = await api.analyzeAnomalies();
       setAnalysisMeta(res);
-      setAnomalies(res.anomalies);
+      if (Array.isArray(res?.anomalies)) {
+        setAnomalies(res.anomalies);
+      }
     } catch (err) {
       console.error('Failed to run anomaly analysis', err);
     } finally {
