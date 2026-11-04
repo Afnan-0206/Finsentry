@@ -39,6 +39,53 @@ Most traditional expense tracking applications merely inform users where their m
 
 ## 🏛️ System Architecture
 
+### High-Level Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph Client["Client Tier (Cloudflare Pages Edge)"]
+        UI["React 18 + Vite + Tailwind CSS SPA\nfinsentry.pages.dev"]
+        Bento["Dark Bento Grid UI & Recharts Data Visualizations"]
+        ClientProxy["Edge Proxy /_redirects & Dynamic API Client"]
+    end
+
+    subgraph API_Gateway["API Gateway (Render Web Service)"]
+        FastAPI["FastAPI 0.115 Application\nfinsentry-d4ye.onrender.com"]
+        CORS["CORS Middleware\nAllowed: *.pages.dev, localhost"]
+        Router["REST Endpoints & SSE Streaming\n/api/dashboard, /api/transactions, /api/chat"]
+    end
+
+    subgraph Service_Tier["Financial Intelligence Services"]
+        TxnSvc["TransactionService\nCRUD, CSV Ingestion, Intelligent Categorization"]
+        SubSvc["SubscriptionService\nCadence Detection & Price Creep Alerts"]
+        DupSvc["DuplicateService\nTemporal Clustering: 0-3 Day Window"]
+        ForeSvc["ForecastingService\n7 & 30-Day Cash Flow Projections"]
+        RecSvc["RecommendationService\nDiscretionary Spending Levers & Habits"]
+    end
+
+    subgraph ML_AI_Tier["AI & Machine Learning Engine"]
+        FE["Multi-Dimensional Feature Engineering\nLog Amount, Category Baseline Ratios, Z-Scores"]
+        IF["Scikit-learn Isolation Forest\nUnsupervised Anomaly Detection (n=100, c=0.05)"]
+        ChatCopilot["AI Investigator Copilot\nZero-Hallucination Grounded Context & Streaming"]
+    end
+
+    subgraph DB_Tier["Storage & Persistence Tier"]
+        DB[("SQLite Ledger (WAL Mode)\nfinsentry.db")]
+        Tables["Relational Tables: transactions, subscriptions,\nalerts, recommendations, budgets, chat_messages"]
+    end
+
+    UI --> ClientProxy
+    ClientProxy -->|HTTPS / REST / SSE| FastAPI
+    FastAPI --> CORS
+    CORS --> Router
+    Router --> Service_Tier
+    Service_Tier --> ML_AI_Tier
+    Service_Tier --> DB_Tier
+    ML_AI_Tier --> DB_Tier
+```
+
+### Repository Structure
+
 ```
 FinSentry-AI/
 ├── backend/
