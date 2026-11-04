@@ -34,7 +34,14 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         count = db.query(Transaction).count()
-        print(f"[FinSentry AI] Storage active: Permanent Local SQLite ({count} transactions loaded).")
+        if count == 0:
+            print("[FinSentry AI] Fresh cloud environment detected (0 transactions). Populating initial ledger...")
+            from app.services.demo_data_service import DemoDataService
+            DemoDataService.reset_and_seed_demo_data(db)
+            count = db.query(Transaction).count()
+            print(f"[FinSentry AI] Initialized {count} transactions successfully.")
+        else:
+            print(f"[FinSentry AI] Storage active: Permanent Local SQLite ({count} transactions loaded).")
     except Exception as e:
         print(f"[FinSentry AI] Startup storage notice: {e}")
     finally:

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: finsentry-ai-backend
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/system/status
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: DATABASE_URL
+        value: "sqlite:///./data/finsentry.db"
+      - key: CORS_ORIGINS
+        value: '["https://finsentry.pages.dev","https://finsentry-ai-afnan.pages.dev","http://localhost:5173","http://localhost:4173"]'
+      - key: AI_PROVIDER
+        value: "deterministic"
+      - key: DEFAULT_CURRENCY
+        value: INR
+      - key: CURRENCY_SYMBOL
+        value: "₹"
