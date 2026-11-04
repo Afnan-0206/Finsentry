@@ -1,2 +1,5 @@
+# Proxy all /api calls directly to Render backend
+/api/*  https://finsentry-d4ye.onrender.com/api/:splat  200
+
 # Cloudflare Pages Single Page Application (SPA) redirect rule
-/*    /index.html   200
+/*      /index.html                                     200

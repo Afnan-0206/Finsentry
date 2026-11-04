@@ -20,8 +20,18 @@ import type {
   CSVImportResponse,
 } from '../types';
 
+export const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')) {
+    return 'https://finsentry-d4ye.onrender.com/api';
+  }
+  return '/api';
+};
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: getApiBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -151,7 +161,7 @@ export const api = {
     },
     abortSignal?: AbortSignal
   ): Promise<void> => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
+    const apiBase = getApiBaseUrl();
     const response = await fetch(`${apiBase}/chat/stream`, {
       method: 'POST',
       headers: {
